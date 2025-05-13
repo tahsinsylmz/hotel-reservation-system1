@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Musteri {
+  id            Int            @id @default(autoincrement())
+  ad            String
+  soyad         String
+  email         String         @unique
+  telefon       String
+  sifre         String
+  rol           Rol           @default(MUSTERI)
+  rezervasyonlar Rezervasyon[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("musteriler")
+}
+
+model Otel {
+  id            Int            @id @default(autoincrement())
+  ad            String
+  adres         String
+  sehir         String
+  yildiz        Int
+  aciklama      String?
+  yoneticiId    Int
+  yonetici      Musteri        @relation("OtelYoneticisi", fields: [yoneticiId], references: [id])
+  odalar        Oda[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("oteller")
+  @@index([sehir])
+}
+
+model Oda {
+  id            Int            @id @default(autoincrement())
+  numara        String
+  tip           String
+  fiyat         Float
+  kapasite      Int
+  otelId        Int
+  otel          Otel           @relation(fields: [otelId], references: [id])
+  rezervasyonlar Rezervasyon[]
+  durumlar      OdaDurumu[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("odalar")
+  @@index([otelId])
+}
+
+model Rezervasyon {
+  id            Int            @id @default(autoincrement())
+  musteriId     Int
+  musteri       Musteri        @relation(fields: [musteriId], references: [id])
+  odaId         Int
+  oda           Oda            @relation(fields: [odaId], references: [id])
+  girisTarihi   DateTime
+  cikisTarihi   DateTime
+  toplamFiyat   Float
+  durum         RezervasyonDurumu @default(AKTIF)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("rezervasyonlar")
+  @@index([musteriId])
+  @@index([odaId])
+  @@index([girisTarihi, cikisTarihi])
+}
+
+model OdaDurumu {
+  id            Int            @id @default(autoincrement())
+  odaId         Int
+  oda           Oda            @relation(fields: [odaId], references: [id])
+  tarih         DateTime
+  durum         OdaDurumTipi
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("oda_durumlari")
+  @@unique([odaId, tarih])
+  @@index([odaId, tarih])
+}
+
+enum Rol {
+  ADMIN
+  OTEL_YONETICISI
+  MUSTERI
+}
+
+enum RezervasyonDurumu {
+  AKTIF
+  IPTAL_EDILDI
+  TAMAMLANDI
+}
+
+enum OdaDurumTipi {
+  MUSAIT
+  DOLU
+  TEMIZLIK
+  BAKIM
+} 
