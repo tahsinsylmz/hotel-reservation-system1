@@ -1,5 +1,5 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Rol } from '@prisma/client';
 import { authenticateToken, isAdmin, isHotelManager } from '../middleware/auth';
 
 const router = express.Router();
@@ -100,7 +100,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Otel bulunamadı' });
     }
 
-    if (req.user?.rol !== 'ADMIN' && req.user?.id !== hotel.yoneticiId) {
+    if (req.user?.rol !== Rol.ADMIN && req.user?.id !== hotel.yoneticiId) {
       return res.status(403).json({ error: 'Bu işlem için yetkiniz yok' });
     }
 

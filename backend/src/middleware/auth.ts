@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { Rol } from '@prisma/client';
 
 export const authenticateToken = (
   req: Request,
@@ -17,7 +18,7 @@ export const authenticateToken = (
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
       id: number;
       email: string;
-      rol: string;
+      rol: Rol;
     };
 
     req.user = decoded;
@@ -28,14 +29,14 @@ export const authenticateToken = (
 };
 
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (req.user?.rol !== 'ADMIN') {
+  if (req.user?.rol !== Rol.ADMIN) {
     return res.status(403).json({ error: 'Bu işlem için admin yetkisi gerekli' });
   }
   next();
 };
 
 export const isHotelManager = (req: Request, res: Response, next: NextFunction) => {
-  if (req.user?.rol !== 'OTEL_YONETICISI') {
+  if (req.user?.rol !== Rol.OTEL_YONETICISI) {
     return res.status(403).json({ error: 'Bu işlem için otel yöneticisi yetkisi gerekli' });
   }
   next();

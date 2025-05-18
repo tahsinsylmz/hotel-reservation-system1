@@ -17,7 +17,7 @@ model Kullanici {
   ad        String
   soyad     String
   telefon   String?
-  rol       String   @default("MUSTERI")
+  rol       Rol      @default(MUSTERI)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -63,7 +63,7 @@ model Rezervasyon {
   girisTarihi  DateTime
   cikisTarihi  DateTime
   toplamFiyat  Float
-  durum        String   @default("AKTIF")
+  durum        RezervasyonDurumu @default(AKTIF)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -77,7 +77,7 @@ model Rezervasyon {
 model OdaDurumu {
   id        Int      @id @default(autoincrement())
   tarih     DateTime
-  durum     String
+  durum     OdaDurumTipi
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

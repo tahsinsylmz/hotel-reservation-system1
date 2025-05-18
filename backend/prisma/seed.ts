@@ -1,73 +1,93 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import { PrismaClient, Rol } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create admin
-  const adminSifre = await bcrypt.hash('admin123', 10);
-  const admin = await prisma.musteri.create({
-    data: {
+  // Create admin user
+  const adminPassword = await bcrypt.hash('admin123', 10);
+  const admin = await prisma.kullanici.upsert({
+    where: { email: 'admin@example.com' },
+    update: {},
+    create: {
+      email: 'admin@example.com',
+      sifre: adminPassword,
       ad: 'Admin',
       soyad: 'User',
-      email: 'admin@example.com',
-      telefon: '5551234567',
-      sifre: adminSifre,
-      rol: 'ADMIN'
-    }
+      rol: Rol.ADMIN,
+    },
   });
 
   // Create hotel manager
-  const yoneticiSifre = await bcrypt.hash('yonetici123', 10);
-  const yonetici = await prisma.musteri.create({
-    data: {
+  const managerPassword = await bcrypt.hash('yonetici123', 10);
+  const manager = await prisma.kullanici.upsert({
+    where: { email: 'yonetici@example.com' },
+    update: {},
+    create: {
+      email: 'yonetici@example.com',
+      sifre: managerPassword,
       ad: 'Otel',
       soyad: 'Yöneticisi',
-      email: 'yonetici@example.com',
-      telefon: '5559876543',
-      sifre: yoneticiSifre,
-      rol: 'OTEL_YONETICISI'
-    }
+      rol: Rol.OTEL_YONETICISI,
+    },
   });
 
-  // Create sample customer
-  const musteriSifre = await bcrypt.hash('musteri123', 10);
-  const musteri = await prisma.musteri.create({
+  // Create sample hotels
+  const hotel1 = await prisma.otel.create({
     data: {
-      ad: 'Test',
-      soyad: 'Müşteri',
-      email: 'musteri@example.com',
-      telefon: '5555555555',
-      sifre: musteriSifre,
-      rol: 'MUSTERI'
-    }
-  });
-
-  // Create sample hotel
-  const otel = await prisma.otel.create({
-    data: {
-      ad: 'Örnek Otel',
-      adres: 'Örnek Mahallesi, Örnek Sokak No:1',
+      ad: 'Grand Hotel',
+      aciklama: 'Lüks bir otel deneyimi',
+      adres: 'Merkez Mahallesi, Atatürk Caddesi No:1',
       sehir: 'İstanbul',
       yildiz: 5,
-      aciklama: 'Lüks bir otel deneyimi',
-      yoneticiId: yonetici.id
-    }
+      yoneticiId: manager.id,
+    },
+  });
+
+  const hotel2 = await prisma.otel.create({
+    data: {
+      ad: 'City Hotel',
+      aciklama: 'Şehir merkezinde konforlu konaklama',
+      adres: 'Cumhuriyet Caddesi No:42',
+      sehir: 'Ankara',
+      yildiz: 4,
+      yoneticiId: manager.id,
+    },
   });
 
   // Create sample rooms
-  const odaTipleri = ['Standart', 'Deluxe', 'Suit'];
-  for (let i = 1; i <= 5; i++) {
-    await prisma.oda.create({
-      data: {
-        numara: `${i}01`,
-        tip: odaTipleri[Math.floor(Math.random() * odaTipleri.length)],
-        fiyat: Math.floor(Math.random() * 500) + 500,
-        kapasite: Math.floor(Math.random() * 3) + 1,
-        otelId: otel.id
-      }
-    });
-  }
+  await prisma.oda.createMany({
+    data: [
+      {
+        numara: '101',
+        tip: 'Standart',
+        kapasite: 2,
+        fiyat: 500,
+        otelId: hotel1.id,
+      },
+      {
+        numara: '102',
+        tip: 'Deluxe',
+        kapasite: 3,
+        fiyat: 750,
+        otelId: hotel1.id,
+      },
+      {
+        numara: '201',
+        tip: 'Standart',
+        kapasite: 2,
+        fiyat: 400,
+        otelId: hotel2.id,
+      },
+      {
+        numara: '202',
+        tip: 'Suite',
+        kapasite: 4,
+        fiyat: 1000,
+        otelId: hotel2.id,
+      },
+    ],
+  });
 
   console.log('Seed data created successfully');
 }
