@@ -5,25 +5,26 @@ import { useAuth } from '../contexts/AuthContext';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  requireYonetici?: boolean;
 }
 
-export default function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
+export default function ProtectedRoute({
+  children,
+  requireAdmin,
+  requireYonetici,
+}: ProtectedRouteProps) {
+  const { user, isAdmin, isYonetici } = useAuth();
 
   if (!user) {
-    return <Navigate to="/giris" />;
+    return <Navigate to="/giris" replace />;
   }
 
-  if (requireAdmin && user.rol !== 'admin') {
-    return <Navigate to="/" />;
+  if (requireAdmin && !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (requireYonetici && !isYonetici) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout';
+import YoneticiLayout from './components/YoneticiLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AnaSayfa from './pages/AnaSayfa';
 import Kayit from './pages/Kayit';
@@ -13,6 +14,7 @@ import Hakkimizda from './pages/Hakkimizda';
 import Iletisim from './pages/Iletisim';
 import GizlilikPolitikasi from './pages/GizlilikPolitikasi';
 import Dashboard from './pages/admin/Dashboard';
+import YoneticiDashboard from './pages/yonetici/Dashboard';
 
 export default function App() {
   return (
@@ -48,6 +50,19 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         {/* Add more admin routes here */}
+      </Route>
+
+      {/* Hotel Manager Routes */}
+      <Route
+        path="/yonetici"
+        element={
+          <ProtectedRoute requireYonetici>
+            <YoneticiLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<YoneticiDashboard />} />
+        {/* Add more hotel manager routes here */}
       </Route>
     </Routes>
   );

@@ -19,7 +19,7 @@ export default function Giris() {
     try {
       await login(formData.email, formData.password);
       toast.success('Giriş başarılı!');
-      navigate('/');
+      // Navigation is handled in the login function based on user role
     } catch (error) {
       toast.error('Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
     } finally {

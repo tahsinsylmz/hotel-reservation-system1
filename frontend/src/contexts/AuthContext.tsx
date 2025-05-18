@@ -2,13 +2,16 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Types
+export type UserRole = 'admin' | 'yonetici' | 'musteri';
+
 interface User {
   id: number;
   ad: string;
   soyad: string;
   email: string;
   telefon: string;
-  rol: 'admin' | 'yonetici' | 'musteri';
+  rol: UserRole;
+  otelId?: number; // For hotel managers
 }
 
 interface AuthContextType {
@@ -18,6 +21,7 @@ interface AuthContextType {
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   isAdmin: boolean;
+  isYonetici: boolean;
 }
 
 interface RegisterData {
@@ -72,7 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           soyad: 'User',
           email,
           telefon: '5551234568',
-          rol: 'yonetici'
+          rol: 'yonetici',
+          otelId: 1 // Demo hotel ID
         };
       } else {
         user = {
@@ -89,10 +94,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('user', JSON.stringify(user));
 
       // Role-based redirection
-      if (user.rol === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/');
+      switch (user.rol) {
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'yonetici':
+          navigate('/yonetici');
+          break;
+        default:
+          navigate('/profil');
       }
     } catch (error) {
       throw new Error('Giriş başarısız');
@@ -141,7 +151,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     register,
     logout,
-    isAdmin: user?.rol === 'admin'
+    isAdmin: user?.rol === 'admin',
+    isYonetici: user?.rol === 'yonetici'
   };
 
   return (
