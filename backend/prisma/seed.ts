@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create admin user
+  // Create admin
   const adminSifre = await bcrypt.hash('admin123', 10);
   const admin = await prisma.musteri.create({
     data: {
@@ -30,6 +30,19 @@ async function main() {
     }
   });
 
+  // Create sample customer
+  const musteriSifre = await bcrypt.hash('musteri123', 10);
+  const musteri = await prisma.musteri.create({
+    data: {
+      ad: 'Test',
+      soyad: 'Müşteri',
+      email: 'musteri@example.com',
+      telefon: '5555555555',
+      sifre: musteriSifre,
+      rol: 'MUSTERI'
+    }
+  });
+
   // Create sample hotel
   const otel = await prisma.otel.create({
     data: {
@@ -44,7 +57,7 @@ async function main() {
 
   // Create sample rooms
   const odaTipleri = ['Standart', 'Deluxe', 'Suit'];
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= 5; i++) {
     await prisma.oda.create({
       data: {
         numara: `${i}01`,

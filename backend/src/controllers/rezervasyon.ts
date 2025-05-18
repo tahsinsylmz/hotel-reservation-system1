@@ -1,12 +1,12 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { rezervasyonSchema } from '../middlewares/validation';
+import { AppError } from '../middlewares/errorHandler';
 
 const prisma = new PrismaClient();
 
-export const rezervasyonYap = async (req: Request, res: Response) => {
+export const rezervasyonYap = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { odaId, girisTarihi, cikisTarihi } = rezervasyonSchema.parse(req.body);
+    const { odaId, girisTarihi, cikisTarihi } = req.body;
     const musteriId = (req as any).user.id;
 
     // Check room availability
@@ -32,7 +32,7 @@ export const rezervasyonYap = async (req: Request, res: Response) => {
     });
 
     if (musaitMi) {
-      return res.status(400).json({ hata: 'Seçilen tarihler için oda müsait değil' });
+      throw new AppError(400, 'Seçilen tarihler için oda müsait değil');
     }
 
     // Get room price
@@ -41,7 +41,7 @@ export const rezervasyonYap = async (req: Request, res: Response) => {
     });
 
     if (!oda) {
-      return res.status(404).json({ hata: 'Oda bulunamadı' });
+      throw new AppError(404, 'Oda bulunamadı');
     }
 
     // Calculate total price
@@ -59,6 +59,13 @@ export const rezervasyonYap = async (req: Request, res: Response) => {
         cikisTarihi: new Date(cikisTarihi),
         toplamFiyat,
         durum: 'AKTIF'
+      },
+      include: {
+        oda: {
+          include: {
+            otel: true
+          }
+        }
       }
     });
 
@@ -67,11 +74,11 @@ export const rezervasyonYap = async (req: Request, res: Response) => {
       rezervasyon
     });
   } catch (error) {
-    res.status(400).json({ hata: 'Rezervasyon oluşturma başarısız' });
+    next(error);
   }
 };
 
-export const rezervasyonIptal = async (req: Request, res: Response) => {
+export const rezervasyonIptal = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const musteriId = (req as any).user.id;
@@ -81,11 +88,11 @@ export const rezervasyonIptal = async (req: Request, res: Response) => {
     });
 
     if (!rezervasyon) {
-      return res.status(404).json({ hata: 'Rezervasyon bulunamadı' });
+      throw new AppError(404, 'Rezervasyon bulunamadı');
     }
 
     if (rezervasyon.musteriId !== musteriId) {
-      return res.status(403).json({ hata: 'Bu işlem için yetkiniz yok' });
+      throw new AppError(403, 'Bu işlem için yetkiniz yok');
     }
 
     const guncelRezervasyon = await prisma.rezervasyon.update({
@@ -98,6 +105,41 @@ export const rezervasyonIptal = async (req: Request, res: Response) => {
       rezervasyon: guncelRezervasyon
     });
   } catch (error) {
-    res.status(400).json({ hata: 'Rezervasyon iptal edilemedi' });
+    next(error);
+  }
+};
+
+export const rezervasyonlariListele = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const musteriId = (req as any).user.id;
+    const rol = (req as any).user.rol;
+
+    const where = rol === 'ADMIN' ? {} : { musteriId };
+
+    const rezervasyonlar = await prisma.rezervasyon.findMany({
+      where,
+      include: {
+        oda: {
+          include: {
+            otel: true
+          }
+        },
+        musteri: {
+          select: {
+            id: true,
+            ad: true,
+            soyad: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    res.json({
+      mesaj: 'Rezervasyonlar başarıyla listelendi',
+      rezervasyonlar
+    });
+  } catch (error) {
+    next(error);
   }
 }; 

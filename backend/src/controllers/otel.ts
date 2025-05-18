@@ -1,10 +1,11 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { otelSchema } from '../middlewares/validation';
+import { AppError } from '../middlewares/errorHandler';
 
 const prisma = new PrismaClient();
 
-export const otelOlustur = async (req: Request, res: Response) => {
+export const otelOlustur = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const otelData = otelSchema.parse(req.body);
     const yoneticiId = (req as any).user.id;
@@ -21,33 +22,41 @@ export const otelOlustur = async (req: Request, res: Response) => {
       otel
     });
   } catch (error) {
-    res.status(400).json({ hata: 'Otel oluşturma başarısız' });
+    next(error);
   }
 };
 
-export const otelleriListele = async (req: Request, res: Response) => {
+export const otelleriListele = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { sehir, yildiz } = req.query;
-    
-    const where = {
-      ...(sehir && { sehir: String(sehir) }),
-      ...(yildiz && { yildiz: Number(yildiz) })
-    };
+    const { sehir } = req.query;
+
+    const where = sehir ? { sehir: String(sehir) } : {};
 
     const oteller = await prisma.otel.findMany({
       where,
       include: {
-        odalar: true
+        odalar: true,
+        yonetici: {
+          select: {
+            id: true,
+            ad: true,
+            soyad: true,
+            email: true
+          }
+        }
       }
     });
 
-    res.json(oteller);
+    res.json({
+      mesaj: 'Oteller başarıyla listelendi',
+      oteller
+    });
   } catch (error) {
-    res.status(400).json({ hata: 'Oteller listelenemedi' });
+    next(error);
   }
 };
 
-export const otelDetay = async (req: Request, res: Response) => {
+export const otelDetay = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 
@@ -67,11 +76,14 @@ export const otelDetay = async (req: Request, res: Response) => {
     });
 
     if (!otel) {
-      return res.status(404).json({ hata: 'Otel bulunamadı' });
+      throw new AppError(404, 'Otel bulunamadı');
     }
 
-    res.json(otel);
+    res.json({
+      mesaj: 'Otel detayları başarıyla getirildi',
+      otel
+    });
   } catch (error) {
-    res.status(400).json({ hata: 'Otel detayları alınamadı' });
+    next(error);
   }
 }; 

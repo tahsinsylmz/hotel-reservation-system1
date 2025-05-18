@@ -1,42 +1,16 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { odaSchema } from '../middlewares/validation';
+import { AppError } from '../middlewares/errorHandler';
 
 const prisma = new PrismaClient();
 
-export const odaOlustur = async (req: Request, res: Response) => {
+export const musaitOdalariListele = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const odaData = odaSchema.parse(req.body);
-    const otelId = Number(req.params.otelId);
+    const { girisTarihi, cikisTarihi, otelId } = req.query;
 
-    // Check if user is the hotel manager
-    const otel = await prisma.otel.findUnique({
-      where: { id: otelId }
-    });
-
-    if (!otel || otel.yoneticiId !== (req as any).user.id) {
-      return res.status(403).json({ hata: 'Bu işlem için yetkiniz yok' });
+    if (!girisTarihi || !cikisTarihi) {
+      throw new AppError(400, 'Giriş ve çıkış tarihi gereklidir');
     }
-
-    const oda = await prisma.oda.create({
-      data: {
-        ...odaData,
-        otelId
-      }
-    });
-
-    res.status(201).json({
-      mesaj: 'Oda başarıyla oluşturuldu',
-      oda
-    });
-  } catch (error) {
-    res.status(400).json({ hata: 'Oda oluşturma başarısız' });
-  }
-};
-
-export const musaitOdalariListele = async (req: Request, res: Response) => {
-  try {
-    const { otelId, girisTarihi, cikisTarihi } = req.query;
 
     const odalar = await prisma.$queryRaw`
       SELECT o.*, ot.ad as otel_adi
@@ -54,8 +28,41 @@ export const musaitOdalariListele = async (req: Request, res: Response) => {
       )
     `;
 
-    res.json(odalar);
+    res.json({
+      mesaj: 'Müsait odalar başarıyla listelendi',
+      odalar
+    });
   } catch (error) {
-    res.status(400).json({ hata: 'Müsait odalar listelenemedi' });
+    next(error);
+  }
+};
+
+export const odaOlustur = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { otelId } = req.params;
+    const odaData = req.body;
+
+    // Check if user is the hotel manager
+    const otel = await prisma.otel.findUnique({
+      where: { id: Number(otelId) }
+    });
+
+    if (!otel || otel.yoneticiId !== (req as any).user.id) {
+      throw new AppError(403, 'Bu işlem için yetkiniz yok');
+    }
+
+    const oda = await prisma.oda.create({
+      data: {
+        ...odaData,
+        otelId: Number(otelId)
+      }
+    });
+
+    res.status(201).json({
+      mesaj: 'Oda başarıyla oluşturuldu',
+      oda
+    });
+  } catch (error) {
+    next(error);
   }
 }; 

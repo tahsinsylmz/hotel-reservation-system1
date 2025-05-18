@@ -1,21 +1,21 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { musteriSchema } from '../middlewares/validation';
+import { AppError } from '../middlewares/errorHandler';
 
 const prisma = new PrismaClient();
 
-export const kayit = async (req: Request, res: Response) => {
+export const kayit = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { ad, soyad, email, telefon, sifre } = musteriSchema.parse(req.body);
+    const { ad, soyad, email, telefon, sifre } = req.body;
 
     const mevcutMusteri = await prisma.musteri.findUnique({
       where: { email }
     });
 
     if (mevcutMusteri) {
-      return res.status(400).json({ hata: 'Bu e-posta adresi zaten kullanılıyor.' });
+      throw new AppError(400, 'Bu e-posta adresi zaten kullanılıyor');
     }
 
     const hashedSifre = await bcrypt.hash(sifre, 10);
@@ -32,7 +32,7 @@ export const kayit = async (req: Request, res: Response) => {
     });
 
     const token = jwt.sign(
-      { id: musteri.id },
+      { id: musteri.id, rol: musteri.rol },
       process.env.JWT_SECRET!,
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
@@ -49,11 +49,11 @@ export const kayit = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    res.status(400).json({ hata: 'Kayıt işlemi başarısız' });
+    next(error);
   }
 };
 
-export const giris = async (req: Request, res: Response) => {
+export const giris = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, sifre } = req.body;
 
@@ -62,17 +62,17 @@ export const giris = async (req: Request, res: Response) => {
     });
 
     if (!musteri) {
-      return res.status(401).json({ hata: 'Geçersiz e-posta veya şifre' });
+      throw new AppError(401, 'Geçersiz e-posta veya şifre');
     }
 
     const sifreGecerli = await bcrypt.compare(sifre, musteri.sifre);
 
     if (!sifreGecerli) {
-      return res.status(401).json({ hata: 'Geçersiz e-posta veya şifre' });
+      throw new AppError(401, 'Geçersiz e-posta veya şifre');
     }
 
     const token = jwt.sign(
-      { id: musteri.id },
+      { id: musteri.id, rol: musteri.rol },
       process.env.JWT_SECRET!,
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
@@ -89,6 +89,6 @@ export const giris = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    res.status(400).json({ hata: 'Giriş işlemi başarısız' });
+    next(error);
   }
 }; 
